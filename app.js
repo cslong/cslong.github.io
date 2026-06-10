@@ -337,7 +337,9 @@ function completeTransformation(index) {
   if (index === 0) {
     state.transformations[index] = { filesChanged: 0, testsPass: false, failed: true };
 
-    addAgentMsg(`<p><strong>AWS Transform</strong></p>
+    // Only pause and show detailed failure if checkpoint is set
+    if (state.checkpoints[index]) {
+      addAgentMsg(`<p><strong>AWS Transform</strong></p>
 <p>&#10060; <strong>${repo.name.split('/')[1]}</strong> — transformation failed</p>
 <div class="checkpoint-alert" style="background:#4c1d1d;border-color:#f87171;">
   <div class="checkpoint-alert-title" style="color:#f87171;">&#10060; Build Failed — Missing Packages</div>
@@ -356,16 +358,29 @@ function completeTransformation(index) {
   <li>Real-time build validation as you resolve each dependency</li>
 </ul>`);
 
-    addActionButtons([
-      { label: 'Open in IDE experience', class: 'blue', action: 'openIDE' },
-      { label: 'Skip and continue', class: 'outline', action: 'continueAfterFail' }
-    ]);
+      addActionButtons([
+        { label: 'Open in IDE experience', class: 'blue', action: 'openIDE' },
+        { label: 'Skip and continue', class: 'outline', action: 'continueAfterFail' }
+      ]);
 
-    state.paused = true;
-    state.pausedAt = index;
+      state.paused = true;
+      state.pausedAt = index;
 
-    updateRightPanelTransforming(index);
+      updateRightPanelTransforming(index);
+      scrollChat();
+      return;
+    }
+
+    // No checkpoint — log failure and continue
+    const transformed = Object.keys(state.transformations).length;
+    if (transformed % 5 === 0) {
+      addAgentMsg(`<p><strong>AWS Transform</strong> <span class="show-thinking">Show thinking &#9662;</span></p>
+<p>&#9889; Progress: ${transformed}/${REPOS.length}. <strong>${repo.name.split('/')[1]}</strong> — &#10060; Failed (missing packages).</p>`);
+    }
+
+    updateRightPanelTransforming(index + 1);
     scrollChat();
+    setTimeout(() => transformNext(index + 1), 300);
     return;
   }
 
