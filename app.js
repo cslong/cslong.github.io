@@ -332,6 +332,43 @@ function runTransformation(index) {
 
 function completeTransformation(index) {
   const repo = REPOS[index];
+
+  // WebPortal (index 0) always fails with missing packages
+  if (index === 0) {
+    state.transformations[index] = { filesChanged: 0, testsPass: false, failed: true };
+
+    addAgentMsg(`<p><strong>AWS Transform</strong></p>
+<p>&#10060; <strong>${repo.name.split('/')[1]}</strong> — transformation failed</p>
+<div class="checkpoint-alert" style="background:#4c1d1d;border-color:#f87171;">
+  <div class="checkpoint-alert-title" style="color:#f87171;">&#10060; Build Failed — Missing Packages</div>
+  <div class="checkpoint-alert-body" style="color:#fca5a5;">
+    The transformation could not complete due to unresolved package dependencies:<br><br>
+    <code>error NU1101: Unable to find package Contoso.Auth.Core (>= 4.2.0)</code><br>
+    <code>error NU1101: Unable to find package Contoso.Logging.Abstractions (>= 2.1.3)</code><br>
+    <code>error NU1101: Unable to find package Contoso.ServiceBus.Client (>= 3.0.1)</code><br><br>
+    These internal packages are not available in the public NuGet feed and require manual resolution.
+  </div>
+</div>
+<p>This repository has dependencies on internal packages that cannot be automatically resolved during cloud transformation. For complex migrations like this, we recommend using the <strong>AWS Toolkit for Visual Studio</strong> IDE experience which provides:</p>
+<ul>
+  <li>Interactive package resolution with private feed configuration</li>
+  <li>Step-by-step migration wizard with manual override support</li>
+  <li>Real-time build validation as you resolve each dependency</li>
+</ul>`);
+
+    addActionButtons([
+      { label: 'Open in IDE experience', class: 'blue', action: 'openIDE' },
+      { label: 'Skip and continue', class: 'outline', action: 'continueAfterFail' }
+    ]);
+
+    state.paused = true;
+    state.pausedAt = index;
+
+    updateRightPanelTransforming(index);
+    scrollChat();
+    return;
+  }
+
   const filesChanged = Math.floor(Math.random() * 80) + 5;
   const testsPass = Math.random() > 0.15;
 
@@ -466,6 +503,22 @@ function handleAction(action) {
     case 'startTransform': startTransformation(); break;
     case 'transformAllAuto': transformAllAuto(); break;
     case 'continueAfter': continueAfterCheckpoint(); break;
+    case 'continueAfterFail': continueAfterCheckpoint(); break;
+    case 'openIDE':
+      addUserMsg('Open in IDE experience');
+      addAgentMsg(`<p><strong>AWS Transform</strong></p>
+<p>&#9889; Launching <strong>AWS Toolkit for Visual Studio</strong> for <strong>WebPortal</strong>...</p>
+<p>The IDE experience will open with:</p>
+<ul>
+  <li>Your project pre-loaded with the current transformation state</li>
+  <li>Package Manager configured to resolve internal feeds</li>
+  <li>Migration wizard ready at the dependency resolution step</li>
+</ul>
+<p>You can return here after completing the IDE migration. Continuing with remaining repositories...</p>`);
+      state.paused = false;
+      scrollChat();
+      setTimeout(() => transformNext(state.pausedAt + 1), 1000);
+      break;
     case 'viewRepoChanges':
       if (state.paused && state.transformations[state.pausedAt]) {
         const repo = REPOS[state.pausedAt];
@@ -682,8 +735,13 @@ function updateRightPanelTransforming(currentIdx) {
     let status, dot;
     if (state.transformations[i]) {
       const t = state.transformations[i];
-      status = t.testsPass ? 'Complete' : 'Needs review';
-      dot = t.testsPass ? 'green' : 'yellow';
+      if (t.failed) {
+        status = 'Failed';
+        dot = 'red';
+      } else {
+        status = t.testsPass ? 'Complete' : 'Needs review';
+        dot = t.testsPass ? 'green' : 'yellow';
+      }
     } else if (i === currentIdx) {
       status = 'In progress';
       dot = 'blue';
@@ -732,8 +790,13 @@ function updateRightPanelTransformComplete() {
     let dot = 'gray';
     let status = 'Skipped';
     if (t) {
-      dot = t.testsPass ? 'green' : 'yellow';
-      status = t.testsPass ? 'Complete' : 'Needs review';
+      if (t.failed) {
+        dot = 'red';
+        status = 'Failed';
+      } else {
+        dot = t.testsPass ? 'green' : 'yellow';
+        status = t.testsPass ? 'Complete' : 'Needs review';
+      }
     }
     const checkpointIcon = hasCheckpoint ? ' <span class="checkpoint-indicator">&#9632;</span>' : '';
     return `<div class="rp-phase-item"><span class="rp-dot ${dot}"></span><span>${name}${checkpointIcon}</span><span class="rp-phase-status">${status}</span></div>`;
