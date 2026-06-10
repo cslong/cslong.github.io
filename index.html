@@ -1,14 +1,187 @@
-<h1>
-Download Robofriends for Mac or Windows
-</h1>
-<br>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AWS Transform</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!-- Top Browser-like bar -->
+<div class="browser-bar">
+  <div class="browser-tabs">
+    <div class="browser-tab active">AWS Transform</div>
+  </div>
+</div>
 
-Mac Build
-<p>
-	https://drive.google.com/file/d/0BxtWDrGERla3NnMxV3h5NGxqVUE/view?usp=sharing
-</p>
+<!-- Navigation Bar -->
+<div class="nav-bar">
+  <div class="nav-left">
+    <div class="nav-logo">
+      <span class="logo-icon">&#9881;</span>
+      <span class="logo-text">AWS Transform</span>
+    </div>
+    <div class="nav-breadcrumb">
+      <a href="#">Workspaces</a>
+      <span class="breadcrumb-sep">›</span>
+      <a href="#">repo-discovery</a>
+      <span class="breadcrumb-sep">›</span>
+      <span>Arena</span>
+    </div>
+  </div>
+  <div class="nav-right">
+    <span class="nav-link">Virginia (us-east-1)</span>
+    <div class="nav-avatar">&#9679;</div>
+  </div>
+</div>
 
-Windows Build
-<p>
-https://drive.google.com/file/d/0B9G4CZTFdl99aW55S2R5SVFrZ1k/view?usp=sharing
-</p>
+<!-- Main Layout -->
+<div class="main-layout">
+  <!-- Left Sidebar - Job Plan -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2>Job plan</h2>
+      <button class="sidebar-collapse-btn" title="Collapse">&#9776;</button>
+    </div>
+
+    <div class="sidebar-steps">
+      <!-- Step 1: Get resource -->
+      <div class="step-section">
+        <div class="step-header" onclick="toggleStep(this)">
+          <span class="step-chevron">&#9662;</span>
+          <span class="step-icon">&#128196;</span>
+          <span class="step-title">Get resource</span>
+        </div>
+        <div class="step-body">
+          <p class="step-desc">Connect to GitHub to discover repositories</p>
+          <span class="step-badge completed">Completed</span>
+        </div>
+      </div>
+
+      <!-- Step 2: Choose connector type -->
+      <div class="step-section">
+        <div class="step-header" onclick="toggleStep(this)">
+          <span class="step-chevron">&#9662;</span>
+          <span class="step-icon">&#128268;</span>
+          <span class="step-title">Choose connector type</span>
+        </div>
+        <div class="step-body">
+          <p class="step-desc">GitHub API connector configured</p>
+          <span class="step-badge completed">Completed</span>
+        </div>
+      </div>
+
+      <!-- Step 3: Invite collaborators -->
+      <div class="step-section">
+        <div class="step-header" onclick="toggleStep(this)">
+          <span class="step-chevron">&#9662;</span>
+          <span class="step-icon">&#128101;</span>
+          <span class="step-title">Invite collaborators</span>
+        </div>
+        <div class="step-body">
+          <p class="step-desc">Optional — skip for now</p>
+        </div>
+      </div>
+
+      <!-- Step 4: Discover -->
+      <div class="step-section" id="stepDiscover">
+        <div class="step-header" onclick="toggleStep(this)">
+          <span class="step-chevron">&#9662;</span>
+          <span class="step-icon">&#128270;</span>
+          <span class="step-title">Discover</span>
+        </div>
+        <div class="step-body">
+          <p class="step-desc">Discover repositories from GitHub</p>
+          <div class="step-substeps" id="discoverSubsteps">
+            <div class="substep">
+              <span class="substep-icon done">&#10003;</span>
+              <span>Discover repositories</span>
+            </div>
+            <div class="substep">
+              <span class="substep-icon done">&#10003;</span>
+              <span>GitHub upload</span>
+            </div>
+          </div>
+          <span class="step-badge completed" id="discoverBadge">Completed</span>
+        </div>
+      </div>
+
+      <!-- Step 5: Assess -->
+      <div class="step-section" id="stepAssess">
+        <div class="step-header" onclick="toggleStep(this)">
+          <span class="step-chevron">&#9662;</span>
+          <span class="step-icon">&#128202;</span>
+          <span class="step-title">Assess</span>
+        </div>
+        <div class="step-body">
+          <p class="step-desc">Assess repositories for transformation readiness</p>
+          <div class="step-substeps" id="assessSubsteps"></div>
+          <span class="step-badge in-progress" id="assessBadge" style="display:none">In progress</span>
+        </div>
+      </div>
+
+      <!-- Step 6: Prepare for transformation -->
+      <div class="step-section" id="stepPrepare">
+        <div class="step-header" onclick="toggleStep(this)">
+          <span class="step-chevron">&#9662;</span>
+          <span class="step-icon">&#128221;</span>
+          <span class="step-title">Prepare for transformation</span>
+        </div>
+        <div class="step-body">
+          <p class="step-desc">Configure transformation options and generate plan</p>
+          <div class="step-substeps" id="prepareSubsteps"></div>
+          <span class="step-badge" id="prepareBadge" style="display:none"></span>
+        </div>
+      </div>
+
+      <!-- Step 7: Transform -->
+      <div class="step-section" id="stepTransform">
+        <div class="step-header" onclick="toggleStep(this)">
+          <span class="step-chevron">&#9662;</span>
+          <span class="step-icon">&#9889;</span>
+          <span class="step-title">Transform</span>
+        </div>
+        <div class="step-body">
+          <p class="step-desc">Execute transformation on selected repositories</p>
+          <span class="step-badge" id="transformBadge" style="display:none"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center Content - Chat Area -->
+  <div class="center-area">
+    <div class="center-topbar">
+      <div class="page-indicator" id="pageIndicator">page 1 of 1</div>
+      <div class="topbar-actions">
+        <button class="topbar-btn" id="btnAssessAll">assess all repos</button>
+      </div>
+    </div>
+
+    <div class="chat-area" id="chatArea">
+      <!-- Messages populated by JS -->
+    </div>
+
+    <div class="chat-input-bar">
+      <div class="chat-input-container">
+        <input type="text" id="chatInput" placeholder="Ask a question or chat with the agent. Use @ to reference tasks in the Job plan.">
+        <button class="chat-send-btn" onclick="sendChat()">&#10148;</button>
+      </div>
+      <div class="chat-footer">AWS Transform uses generative AI. You may need to verify responses.</div>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="right-panel" id="rightPanel">
+    <div class="right-panel-header">
+      <h3 id="rightPanelTitle">Assessment Summary</h3>
+    </div>
+    <div class="right-panel-content" id="rightPanelContent">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
