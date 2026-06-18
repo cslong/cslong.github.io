@@ -826,6 +826,41 @@ body {
 }
 .assessment-card td { padding: 4px 8px; color: #d1d5db; }
 
+/* Failed repos list in right panel */
+.rp-failed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rp-failed-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #1a1a2e;
+  border: 1px solid #3b1a1a;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #f87171;
+}
+.rp-failed-item span:nth-child(2) {
+  flex: 1;
+}
+.rp-retry-btn {
+  padding: 3px 10px;
+  background: #1e3a5f;
+  border: 1px solid #3b82f6;
+  border-radius: 4px;
+  color: #60a5fa;
+  font-size: 10px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.rp-retry-btn:hover {
+  background: #2563eb;
+  color: #fff;
+}
+
 /* Spinner used in thinking panel */
 .thinking-panel .spinner {
   width: 12px;

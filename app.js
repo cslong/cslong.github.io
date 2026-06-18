@@ -997,31 +997,105 @@ function renderRightPanel() {
 
 function updateRightPanelDiscovery() {
   document.getElementById('rightPanel').style.display = 'flex';
-  document.getElementById('rightPanelTitle').textContent = `Discovered Repositories (${REPOS.length})`;
+  const selectedCount = state.selectedRepos ? state.selectedRepos.filter(Boolean).length : REPOS.length;
+  document.getElementById('rightPanelTitle').textContent = `Discovered Repositories (${selectedCount} selected)`;
   const content = document.getElementById('rightPanelContent');
+
+  // Initialize selectedRepos if not set
+  if (!state.selectedRepos) {
+    state.selectedRepos = REPOS.map(() => true);
+  }
 
   let rows = REPOS.map((r, i) => `
     <tr>
-      <td><input type="checkbox" checked disabled></td>
+      <td><input type="checkbox" id="repo-chk-${i}" ${state.selectedRepos[i] ? 'checked' : ''} onchange="toggleRepoSelection(${i})"></td>
       <td>${r.name.split('/')[1]}</td>
       <td>${r.lang}</td>
     </tr>`).join('');
 
   content.innerHTML = `
     <div class="rp-filters">
-      <span class="rp-filter-label">Total Repositories</span>
-      <span class="rp-filter-label">Languages</span>
+      <span class="rp-filter-label">Total: ${REPOS.length}</span>
+      <span class="rp-filter-label">Selected: <strong id="selectedRepoCount">${selectedCount}</strong></span>
     </div>
     <div class="rp-filter-bar">
-      <span class="filter-chip active">.NET (14)</span>
-      <span class="filter-chip">Python (3)</span>
-      <span class="filter-chip">Java (3)</span>
+      <span class="filter-chip active" onclick="selectReposByLang('.NET')">.NET (14)</span>
+      <span class="filter-chip" onclick="selectReposByLang('Python')">Python (3)</span>
+      <span class="filter-chip" onclick="selectReposByLang('Java')">Java (3)</span>
+      <span class="filter-chip" onclick="selectAllRepos()">All</span>
+      <span class="filter-chip" onclick="deselectAllRepos()">None</span>
     </div>
     <table class="rp-table">
       <thead><tr><th>Select</th><th>Repository</th><th>Language</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
-    <button class="rp-confirm-btn" onclick="handleAction('assessAll')">Confirm selection</button>`;
+    <button class="rp-confirm-btn" onclick="confirmRepoSelection()">Confirm selection (${selectedCount})</button>`;
+}
+
+function toggleRepoSelection(index) {
+  if (!state.selectedRepos) state.selectedRepos = REPOS.map(() => true);
+  state.selectedRepos[index] = document.getElementById(`repo-chk-${index}`).checked;
+  const count = state.selectedRepos.filter(Boolean).length;
+  document.getElementById('rightPanelTitle').textContent = `Discovered Repositories (${count} selected)`;
+  const countEl = document.getElementById('selectedRepoCount');
+  if (countEl) countEl.textContent = count;
+  const btn = document.querySelector('.rp-confirm-btn');
+  if (btn) btn.textContent = `Confirm selection (${count})`;
+}
+
+function selectReposByLang(lang) {
+  if (!state.selectedRepos) state.selectedRepos = REPOS.map(() => true);
+  REPOS.forEach((r, i) => {
+    state.selectedRepos[i] = r.lang === lang;
+    const chk = document.getElementById(`repo-chk-${i}`);
+    if (chk) chk.checked = state.selectedRepos[i];
+  });
+  const count = state.selectedRepos.filter(Boolean).length;
+  document.getElementById('rightPanelTitle').textContent = `Discovered Repositories (${count} selected)`;
+  const countEl = document.getElementById('selectedRepoCount');
+  if (countEl) countEl.textContent = count;
+  const btn = document.querySelector('.rp-confirm-btn');
+  if (btn) btn.textContent = `Confirm selection (${count})`;
+}
+
+function selectAllRepos() {
+  if (!state.selectedRepos) state.selectedRepos = REPOS.map(() => true);
+  REPOS.forEach((_, i) => {
+    state.selectedRepos[i] = true;
+    const chk = document.getElementById(`repo-chk-${i}`);
+    if (chk) chk.checked = true;
+  });
+  const count = REPOS.length;
+  document.getElementById('rightPanelTitle').textContent = `Discovered Repositories (${count} selected)`;
+  const countEl = document.getElementById('selectedRepoCount');
+  if (countEl) countEl.textContent = count;
+  const btn = document.querySelector('.rp-confirm-btn');
+  if (btn) btn.textContent = `Confirm selection (${count})`;
+}
+
+function deselectAllRepos() {
+  if (!state.selectedRepos) state.selectedRepos = REPOS.map(() => true);
+  REPOS.forEach((_, i) => {
+    state.selectedRepos[i] = false;
+    const chk = document.getElementById(`repo-chk-${i}`);
+    if (chk) chk.checked = false;
+  });
+  document.getElementById('rightPanelTitle').textContent = `Discovered Repositories (0 selected)`;
+  const countEl = document.getElementById('selectedRepoCount');
+  if (countEl) countEl.textContent = '0';
+  const btn = document.querySelector('.rp-confirm-btn');
+  if (btn) btn.textContent = `Confirm selection (0)`;
+}
+
+function confirmRepoSelection() {
+  const count = state.selectedRepos ? state.selectedRepos.filter(Boolean).length : REPOS.length;
+  if (count === 0) {
+    addAgentMsg(`<p><strong>AWS Transform</strong></p><p>Please select at least one repository to assess.</p>`);
+    return;
+  }
+  addUserMsg(`Confirm ${count} repositories for assessment`);
+  addAgentMsg(`<p><strong>AWS Transform</strong></p><p>&#10003; ${count} repositories confirmed for assessment.</p>`);
+  assessAll();
 }
 
 function updateRightPanelAssessmentComplete() {
@@ -1109,14 +1183,21 @@ function updateRightPanelTransforming(currentIdx) {
   const transformed = Object.keys(state.transformations).length;
   const startTime = '6/10/2026, 1:35 PM';
 
+  let failedRepos = [];
   let phasesHtml = REPOS.map((r, i) => {
     const name = r.name.split('/')[1];
     const hasCheckpoint = state.checkpoints[i];
     let status, dot;
     if (state.transformations[i]) {
       const t = state.transformations[i];
-      status = t.testsPass ? 'Complete' : 'Needs review';
-      dot = t.testsPass ? 'green' : 'yellow';
+      if (t.testsPass) {
+        status = 'Complete';
+        dot = 'green';
+      } else {
+        status = 'Failed';
+        dot = 'red';
+        failedRepos.push(i);
+      }
     } else if (i === currentIdx) {
       status = 'In progress';
       dot = 'blue';
@@ -1125,8 +1206,25 @@ function updateRightPanelTransforming(currentIdx) {
       dot = 'gray';
     }
     const checkpointIcon = hasCheckpoint ? ' <span class="checkpoint-indicator">&#9632;</span>' : '';
-    return `<div class="rp-phase-item"><span class="rp-dot ${dot}"></span><span>${name}${checkpointIcon}</span><span class="rp-phase-status">${status}</span></div>`;
+    return `<div class="rp-phase-item" onclick="handleRepoStepClick(${i})" style="cursor:pointer"><span class="rp-dot ${dot}"></span><span>${name}${checkpointIcon}</span><span class="rp-phase-status">${status}</span></div>`;
   }).join('');
+
+  let failedSection = '';
+  if (failedRepos.length > 0 && state.mode === 'auto') {
+    const failedItems = failedRepos.map(i => {
+      const name = REPOS[i].name.split('/')[1];
+      return `<div class="rp-failed-item">
+        <span class="rp-dot red"></span>
+        <span>${name}</span>
+        <button class="rp-retry-btn" onclick="retryFromPanel(${i})">Retry</button>
+      </div>`;
+    }).join('');
+    failedSection = `
+    <div class="rp-section-block">
+      <h4>&#10060; Failed (${failedRepos.length})</h4>
+      <div class="rp-failed-list">${failedItems}</div>
+    </div>`;
+  }
 
   content.innerHTML = `
     <div class="rp-detail-section">
@@ -1135,6 +1233,7 @@ function updateRightPanelTransforming(currentIdx) {
       <div class="rp-detail-row"><span class="rp-detail-lbl">Progress</span><span class="rp-detail-val">${transformed}/${REPOS.length}</span></div>
       <div class="rp-detail-row"><span class="rp-detail-lbl">Mode</span><span class="rp-detail-val">${state.mode === 'auto' ? 'Autonomous' : 'Interactive'}</span></div>
     </div>
+    ${failedSection}
     <div class="rp-section-block">
       <h4>Transformation attempts (1)</h4>
       <table class="rp-table rp-attempts-table">
@@ -1155,10 +1254,12 @@ function updateRightPanelTransforming(currentIdx) {
 function updateRightPanelTransformComplete() {
   const transformed = Object.keys(state.transformations).length;
   const passing = Object.values(state.transformations).filter(t => t.testsPass).length;
+  const failed = transformed - passing;
 
   document.getElementById('rightPanelTitle').textContent = 'Transformation Complete';
   const content = document.getElementById('rightPanelContent');
 
+  let failedRepos = [];
   let phasesHtml = REPOS.map((r, i) => {
     const name = r.name.split('/')[1];
     const hasCheckpoint = state.checkpoints[i];
@@ -1166,23 +1267,73 @@ function updateRightPanelTransformComplete() {
     let dot = 'gray';
     let status = 'Skipped';
     if (t) {
-      dot = t.testsPass ? 'green' : 'yellow';
-      status = t.testsPass ? 'Complete' : 'Needs review';
+      if (t.testsPass) {
+        dot = 'green';
+        status = 'Complete';
+      } else {
+        dot = 'red';
+        status = 'Failed';
+        failedRepos.push(i);
+      }
     }
     const checkpointIcon = hasCheckpoint ? ' <span class="checkpoint-indicator">&#9632;</span>' : '';
-    return `<div class="rp-phase-item"><span class="rp-dot ${dot}"></span><span>${name}${checkpointIcon}</span><span class="rp-phase-status">${status}</span></div>`;
+    return `<div class="rp-phase-item" onclick="handleRepoStepClick(${i})" style="cursor:pointer"><span class="rp-dot ${dot}"></span><span>${name}${checkpointIcon}</span><span class="rp-phase-status">${status}</span></div>`;
   }).join('');
+
+  let failedSection = '';
+  if (failedRepos.length > 0) {
+    const failedItems = failedRepos.map(i => {
+      const name = REPOS[i].name.split('/')[1];
+      return `<div class="rp-failed-item">
+        <span class="rp-dot red"></span>
+        <span>${name}</span>
+        <button class="rp-retry-btn" onclick="retryFromPanel(${i})">Retry</button>
+      </div>`;
+    }).join('');
+    failedSection = `
+    <div class="rp-section-block">
+      <h4>&#10060; Failed (${failedRepos.length})</h4>
+      <div class="rp-failed-list">${failedItems}</div>
+    </div>`;
+  }
 
   content.innerHTML = `
     <div class="rp-detail-section">
-      <div class="rp-detail-row"><span class="rp-detail-lbl">Status</span><span class="rp-detail-val" style="color:#34d399">Complete</span></div>
+      <div class="rp-detail-row"><span class="rp-detail-lbl">Status</span><span class="rp-detail-val" style="color:${failed > 0 ? '#fbbf24' : '#34d399'}">${failed > 0 ? 'Complete with errors' : 'Complete'}</span></div>
       <div class="rp-detail-row"><span class="rp-detail-lbl">Transformed</span><span class="rp-detail-val">${transformed}/${REPOS.length}</span></div>
-      <div class="rp-detail-row"><span class="rp-detail-lbl">Tests passing</span><span class="rp-detail-val">${passing}/${transformed}</span></div>
+      <div class="rp-detail-row"><span class="rp-detail-lbl">Passing</span><span class="rp-detail-val" style="color:#34d399">${passing}</span></div>
+      <div class="rp-detail-row"><span class="rp-detail-lbl">Failed</span><span class="rp-detail-val" style="color:${failed > 0 ? '#f87171' : '#34d399'}">${failed}</span></div>
     </div>
+    ${failedSection}
     <div class="rp-section-block">
       <h4>Results</h4>
       <div class="rp-phases-list">${phasesHtml}</div>
     </div>`;
+}
+
+function retryFromPanel(index) {
+  const repo = REPOS[index];
+  const repoName = repo.name.split('/')[1];
+  addAgentMsg(`<p><strong>AWS Transform</strong></p>
+<p>&#128260; Retrying transformation for <strong>${repoName}</strong>...</p>`);
+  showThinkingPanel(`Retrying ${repoName}...`);
+  setTimeout(() => {
+    const filesChanged = Math.floor(Math.random() * 80) + 5;
+    state.transformations[index] = { filesChanged, testsPass: true };
+    updateSidebarTransformRepo(index);
+    const summary = getTransformSummary(index, filesChanged, true);
+    addAgentMsg(`<p><strong>AWS Transform</strong></p>
+<p>&#9989; <strong>${repoName}</strong> — retry successful</p>
+<p>${summary}</p>`);
+    stopThinking();
+    // Refresh right panel to remove this repo from failed list
+    if (state.phase === 'complete') {
+      updateRightPanelTransformComplete();
+    } else {
+      updateRightPanelTransforming(state.currentIndex >= 0 ? state.currentIndex : 0);
+    }
+    scrollChat();
+  }, 1500);
 }
 
 // ============ Right Panel Resize ============
