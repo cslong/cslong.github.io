@@ -85,7 +85,7 @@
 
       <!-- Step 4: Discover -->
       <div class="step-section" id="stepDiscover">
-        <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-header" onclick="handleStepClick('stepDiscover'); toggleStep(this)">
           <span class="step-chevron">&#9662;</span>
           <span class="step-icon">&#128270;</span>
           <span class="step-title">Discover</span>
@@ -108,7 +108,7 @@
 
       <!-- Step 5: Assess -->
       <div class="step-section" id="stepAssess">
-        <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-header" onclick="handleStepClick('stepAssess'); toggleStep(this)">
           <span class="step-chevron">&#9662;</span>
           <span class="step-icon">&#128202;</span>
           <span class="step-title">Assess</span>
@@ -122,7 +122,7 @@
 
       <!-- Step 6: Prepare for transformation -->
       <div class="step-section" id="stepPrepare">
-        <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-header" onclick="handleStepClick('stepPrepare'); toggleStep(this)">
           <span class="step-chevron">&#9662;</span>
           <span class="step-icon">&#128221;</span>
           <span class="step-title">Prepare for transformation</span>
@@ -136,13 +136,14 @@
 
       <!-- Step 7: Transform -->
       <div class="step-section" id="stepTransform">
-        <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-header" onclick="handleStepClick('stepTransform'); toggleStep(this)">
           <span class="step-chevron">&#9662;</span>
           <span class="step-icon">&#9889;</span>
           <span class="step-title">Transform</span>
         </div>
         <div class="step-body">
           <p class="step-desc">Execute transformation on selected repositories</p>
+          <div class="step-substeps" id="transformSubsteps"></div>
           <span class="step-badge" id="transformBadge" style="display:none"></span>
         </div>
       </div>
@@ -151,19 +152,35 @@
 
   <!-- Center Content - Chat Area -->
   <div class="center-area">
-    <div class="center-topbar">
-      <div class="page-indicator" id="pageIndicator">page 1 of 1</div>
-      <div class="topbar-actions">
-        <button class="topbar-btn" id="btnAssessAll">assess all repos</button>
-      </div>
-    </div>
 
     <div class="chat-area" id="chatArea">
       <!-- Messages populated by JS -->
     </div>
 
+    <!-- Thinking Panel (collapsible, above chat input) -->
+    <div class="thinking-panel" id="thinkingPanel" style="display:none">
+      <div class="thinking-panel-header">
+        <span class="thinking-panel-icon"><span class="spinner"></span></span>
+        <span class="thinking-panel-label">Agent is thinking...</span>
+        <button class="thinking-panel-toggle" onclick="hideThinkingPanel()">&#9660; Hide</button>
+      </div>
+      <div class="thinking-panel-content" id="thinkingContent">
+        Analyzing repository structure and dependencies...
+      </div>
+    </div>
+    <div class="thinking-panel-collapsed" id="thinkingPanelCollapsed" style="display:none" onclick="reshowThinkingPanel()">
+      <span class="spinner"></span>
+      <span>Agent is thinking...</span>
+      <span class="thinking-panel-show-btn">&#9650; Show</span>
+    </div>
+
     <div class="chat-input-bar">
       <div class="chat-input-container">
+        <button class="chat-upload-btn" title="Upload file">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M8 1v10M8 1L4.5 4.5M8 1l3.5 3.5M2 11v2.5a1.5 1.5 0 001.5 1.5h9a1.5 1.5 0 001.5-1.5V11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
         <input type="text" id="chatInput" placeholder="Ask a question or chat with the agent. Use @ to reference tasks in the Job plan.">
         <button class="chat-send-btn" onclick="sendChat()">&#10148;</button>
       </div>
@@ -171,7 +188,8 @@
     </div>
   </div>
 
-  <!-- Right Panel -->
+  <!-- Right Panel (resizable) -->
+  <div class="right-panel-resize-handle" id="rightPanelResizeHandle"></div>
   <div class="right-panel" id="rightPanel">
     <div class="right-panel-header">
       <h3 id="rightPanelTitle">Assessment Summary</h3>

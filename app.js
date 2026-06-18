@@ -1,46 +1,51 @@
 // Repository data - 20 repos (.NET first, then Python, then Java)
 const REPOS = [
   // .NET repositories (14)
-  { name: 'contoso/WebPortal', lang: '.NET', size: '1.2 GB', stars: '3.2k', solutions: 6, projects: 18 },
-  { name: 'contoso/PaymentService', lang: '.NET', size: '480 MB', stars: '1.8k', solutions: 3, projects: 9 },
-  { name: 'contoso/IdentityServer', lang: '.NET', size: '320 MB', stars: '2.1k', solutions: 2, projects: 7 },
-  { name: 'contoso/OrderManagement', lang: '.NET', size: '890 MB', stars: '1.4k', solutions: 4, projects: 12 },
-  { name: 'contoso/NotificationHub', lang: '.NET', size: '210 MB', stars: '980', solutions: 2, projects: 5 },
-  { name: 'contoso/ReportingEngine', lang: '.NET', size: '1.5 GB', stars: '2.4k', solutions: 5, projects: 14 },
-  { name: 'contoso/CustomerAPI', lang: '.NET', size: '340 MB', stars: '1.6k', solutions: 2, projects: 6 },
-  { name: 'contoso/InventoryTracker', lang: '.NET', size: '560 MB', stars: '1.1k', solutions: 3, projects: 8 },
-  { name: 'contoso/DataMigration', lang: '.NET', size: '180 MB', stars: '720', solutions: 1, projects: 4 },
-  { name: 'contoso/AuditLogger', lang: '.NET', size: '95 MB', stars: '540', solutions: 1, projects: 3 },
-  { name: 'contoso/SearchService', lang: '.NET', size: '410 MB', stars: '1.3k', solutions: 2, projects: 7 },
-  { name: 'contoso/ConfigManager', lang: '.NET', size: '120 MB', stars: '890', solutions: 1, projects: 3 },
-  { name: 'contoso/FileProcessor', lang: '.NET', size: '270 MB', stars: '1.0k', solutions: 2, projects: 5 },
-  { name: 'contoso/SchedulerWorker', lang: '.NET', size: '150 MB', stars: '670', solutions: 1, projects: 4 },
+  { name: 'contoso/WebPortal', lang: '.NET', stars: '3.2k', solutions: 6, projects: 18 },
+  { name: 'contoso/PaymentService', lang: '.NET', stars: '1.8k', solutions: 3, projects: 9 },
+  { name: 'contoso/IdentityServer', lang: '.NET', stars: '2.1k', solutions: 2, projects: 7 },
+  { name: 'contoso/OrderManagement', lang: '.NET', stars: '1.4k', solutions: 4, projects: 12 },
+  { name: 'contoso/NotificationHub', lang: '.NET', stars: '980', solutions: 2, projects: 5 },
+  { name: 'contoso/ReportingEngine', lang: '.NET', stars: '2.4k', solutions: 5, projects: 14 },
+  { name: 'contoso/CustomerAPI', lang: '.NET', stars: '1.6k', solutions: 2, projects: 6 },
+  { name: 'contoso/InventoryTracker', lang: '.NET', stars: '1.1k', solutions: 3, projects: 8 },
+  { name: 'contoso/DataMigration', lang: '.NET', stars: '720', solutions: 1, projects: 4 },
+  { name: 'contoso/AuditLogger', lang: '.NET', stars: '540', solutions: 1, projects: 3 },
+  { name: 'contoso/SearchService', lang: '.NET', stars: '1.3k', solutions: 2, projects: 7 },
+  { name: 'contoso/ConfigManager', lang: '.NET', stars: '890', solutions: 1, projects: 3 },
+  { name: 'contoso/FileProcessor', lang: '.NET', stars: '1.0k', solutions: 2, projects: 5 },
+  { name: 'contoso/SchedulerWorker', lang: '.NET', stars: '670', solutions: 1, projects: 4 },
   // Python repositories (3)
-  { name: 'contoso/ml-pipeline', lang: 'Python', size: '2.3 GB', stars: '4.1k', solutions: 3, projects: 9 },
-  { name: 'contoso/data-analytics', lang: 'Python', size: '780 MB', stars: '2.8k', solutions: 2, projects: 6 },
-  { name: 'contoso/automation-scripts', lang: 'Python', size: '45 MB', stars: '1.2k', solutions: 1, projects: 2 },
+  { name: 'contoso/ml-pipeline', lang: 'Python', stars: '4.1k', solutions: 3, projects: 9 },
+  { name: 'contoso/data-analytics', lang: 'Python', stars: '2.8k', solutions: 2, projects: 6 },
+  { name: 'contoso/automation-scripts', lang: 'Python', stars: '1.2k', solutions: 1, projects: 2 },
   // Java repositories (3)
-  { name: 'contoso/legacy-gateway', lang: 'Java', size: '1.8 GB', stars: '3.5k', solutions: 4, projects: 11 },
-  { name: 'contoso/batch-processor', lang: 'Java', size: '920 MB', stars: '2.2k', solutions: 3, projects: 8 },
-  { name: 'contoso/message-broker', lang: 'Java', size: '640 MB', stars: '1.9k', solutions: 2, projects: 6 }
+  { name: 'contoso/legacy-gateway', lang: 'Java', stars: '3.5k', solutions: 4, projects: 11 },
+  { name: 'contoso/batch-processor', lang: 'Java', stars: '2.2k', solutions: 3, projects: 8 },
+  { name: 'contoso/message-broker', lang: 'Java', stars: '1.9k', solutions: 2, projects: 6 }
 ];
 
 let state = {
   phase: 'init',
+  mode: 'interactive', // 'auto' or 'interactive'
   checkpoints: {},
   assessments: {},
   transformations: {},
   currentIndex: -1,
   paused: false,
   pausedAt: -1,
-  msgCount: 0
+  msgCount: 0,
+  thinkingVisible: false,
+  thinkingActive: false
 };
 
-REPOS.forEach((_, i) => { state.checkpoints[i] = false; });
+// Interactive mode: all checkpoints enabled by default (per design doc)
+REPOS.forEach((_, i) => { state.checkpoints[i] = true; });
 
 function init() {
   renderRightPanel();
   startWelcomeFlow();
+  document.getElementById('chatInput').addEventListener('keydown', handleChatInput);
 }
 
 function startWelcomeFlow() {
@@ -89,17 +94,19 @@ function completeDiscovery() {
     tableRows += `
       <tr>
         <td><a class="repo-link" href="#">${repo.name}</a></td>
-        <td>${repo.size}</td>
         <td>${repo.lang}</td>
         <td>${repo.solutions}</td>
         <td>${repo.projects}</td>
       </tr>`;
   });
 
-  addAgentMsg(`<p><strong>AWS Transform</strong> <span class="show-thinking">Show thinking &#9662;</span></p>
+  addAgentMsg(`<p><strong>AWS Transform</strong> <span class="show-thinking" onclick="toggleThinkingPanel()">Show thinking &#9662;</span></p>
 <p>I found <strong>20 repositories</strong> in your upload:</p>
-<table class="discovery-table">
-  <thead><tr><th>Project</th><th>Size</th><th>Language</th><th>Solutions</th><th>Projects</th></tr></thead>
+<div class="table-search-container">
+  <input type="text" class="table-search-input" placeholder="Search repositories..." oninput="filterDiscoveryTable(this)">
+</div>
+<table class="discovery-table" id="discoveryTable">
+  <thead><tr><th>Project</th><th>Language</th><th>Solutions</th><th>Projects</th></tr></thead>
   <tbody>${tableRows}</tbody>
 </table>`);
 
@@ -112,7 +119,88 @@ function completeDiscovery() {
   <button class="file-card-action">Download</button>
 </div>`);
 
+  // Show mode selection after discovery
+  showModeSelection();
+
+  updateRightPanelDiscovery();
+  scrollChat();
+}
+
+// ============ MODE SELECTION ============
+
+function showModeSelection() {
   addAgentMsg(`<p><strong>AWS Transform</strong></p>
+<p>How would you like to proceed with the assessment and transformation?</p>
+<p style="font-size:11px;color:#6b8aaa;margin-bottom:8px">Note: Chat interaction is always available regardless of mode. This only controls checkpoint pausing behavior.</p>
+<div class="mode-selection-card">
+  <div class="mode-option ${state.mode === 'interactive' ? 'selected' : ''}" onclick="selectMode('interactive')">
+    <div class="mode-option-header">
+      <span class="mode-radio">${state.mode === 'interactive' ? '&#9679;' : '&#9675;'}</span>
+      <strong>Interactive Mode</strong>
+      <span class="mode-badge recommended">Default</span>
+    </div>
+    <p class="mode-desc">System pauses at defined checkpoints for your review before continuing. Transformation stops on error and waits for your decision.</p>
+    <ul class="mode-features">
+      <li>&#10003; All checkpoints enabled by default</li>
+      <li>&#10003; Stops on error — you choose: continue, retry, or stop</li>
+      <li>&#10003; Upload steering files at any checkpoint</li>
+      <li>&#10003; Switch to autonomous at any checkpoint boundary</li>
+    </ul>
+  </div>
+  <div class="mode-option ${state.mode === 'auto' ? 'selected' : ''}" onclick="selectMode('auto')">
+    <div class="mode-option-header">
+      <span class="mode-radio">${state.mode === 'auto' ? '&#9679;' : '&#9675;'}</span>
+      <strong>Autonomous Mode</strong>
+    </div>
+    <p class="mode-desc">System runs through all phases end-to-end. Will not stop on error — errors are logged and a HITL task is created per failed repository, but other repos continue.</p>
+    <ul class="mode-features">
+      <li>&#10003; Auto-assess all .NET repos from discovery</li>
+      <li>&#10003; Auto-transform all assessed repos</li>
+      <li>&#10003; Errors create HITL tasks but don't block</li>
+      <li>&#10003; Fastest overall execution</li>
+    </ul>
+  </div>
+</div>`);
+
+  addActionButtons([
+    { label: 'Continue with Interactive Mode', class: 'green', action: 'confirmInteractive' },
+    { label: 'Switch to Autonomous Mode', class: 'outline', action: 'confirmAuto' }
+  ]);
+}
+
+function selectMode(mode) {
+  state.mode = mode;
+  const options = document.querySelectorAll('.mode-option');
+  options.forEach(opt => {
+    opt.classList.remove('selected');
+    const radio = opt.querySelector('.mode-radio');
+    radio.innerHTML = '&#9675;';
+  });
+  const selected = document.querySelector(`.mode-option:nth-child(${mode === 'interactive' ? 1 : 2})`);
+  if (selected) {
+    selected.classList.add('selected');
+    selected.querySelector('.mode-radio').innerHTML = '&#9679;';
+  }
+}
+
+function confirmMode(mode) {
+  state.mode = mode;
+  if (mode === 'auto') {
+    // Autonomous: disable all checkpoints
+    REPOS.forEach((_, i) => { state.checkpoints[i] = false; });
+    addUserMsg('Use autonomous mode');
+    addAgentMsg(`<p><strong>AWS Transform</strong></p>
+<p>&#10003; <strong>Autonomous mode</strong> enabled. I'll run assessment and transformation end-to-end without pausing at checkpoints.</p>
+<p>Proceeding to assess all .NET repositories automatically...</p>`);
+    scrollChat();
+    // Auto mode: automatically start assessment
+    setTimeout(() => assessAll(), 1000);
+  } else {
+    // Interactive: enable all checkpoints
+    REPOS.forEach((_, i) => { state.checkpoints[i] = true; });
+    addUserMsg('Use interactive mode');
+    addAgentMsg(`<p><strong>AWS Transform</strong></p>
+<p>&#10003; <strong>Interactive mode</strong> enabled. All checkpoints are enabled by default — I'll pause after each repository for your review.</p>
 <p>Which repositories would you like to assess? You can say:</p>
 <ul>
   <li>assess <strong>all</strong> repos</li>
@@ -121,12 +209,86 @@ function completeDiscovery() {
 </ul>
 <p>Or <strong>select from the panel on the right</strong>.</p>`);
 
-  addActionButtons([
-    { label: 'assess all .NET repos', class: 'blue', action: 'assessAll' }
-  ]);
+    addActionButtons([
+      { label: 'assess all .NET repos', class: 'blue', action: 'assessAll' }
+    ]);
 
-  updateRightPanelDiscovery();
-  scrollChat();
+    scrollChat();
+  }
+}
+
+// ============ THINKING PANEL ============
+
+function toggleThinkingPanel() {
+  if (state.thinkingVisible) {
+    hideThinkingPanel();
+  } else {
+    reshowThinkingPanel();
+  }
+}
+
+function showThinkingPanel(message) {
+  const panel = document.getElementById('thinkingPanel');
+  const collapsed = document.getElementById('thinkingPanelCollapsed');
+  const content = document.getElementById('thinkingContent');
+  if (panel && content) {
+    content.textContent = message;
+    panel.style.display = 'block';
+    collapsed.style.display = 'none';
+    state.thinkingVisible = true;
+    state.thinkingActive = true;
+    panel.classList.add('active');
+  }
+}
+
+function hideThinkingPanel() {
+  const panel = document.getElementById('thinkingPanel');
+  const collapsed = document.getElementById('thinkingPanelCollapsed');
+  if (panel) {
+    panel.style.display = 'none';
+    panel.classList.remove('active');
+    state.thinkingVisible = false;
+    // Show collapsed bar if agent is still actively thinking
+    if (state.thinkingActive && collapsed) {
+      collapsed.style.display = 'flex';
+    }
+  }
+}
+
+function reshowThinkingPanel() {
+  const panel = document.getElementById('thinkingPanel');
+  const collapsed = document.getElementById('thinkingPanelCollapsed');
+  if (panel && state.thinkingActive) {
+    panel.style.display = 'block';
+    panel.classList.add('active');
+    state.thinkingVisible = true;
+    if (collapsed) collapsed.style.display = 'none';
+  }
+}
+
+function stopThinking() {
+  const panel = document.getElementById('thinkingPanel');
+  const collapsed = document.getElementById('thinkingPanelCollapsed');
+  if (panel) {
+    panel.style.display = 'none';
+    panel.classList.remove('active');
+  }
+  if (collapsed) collapsed.style.display = 'none';
+  state.thinkingVisible = false;
+  state.thinkingActive = false;
+}
+
+// ============ SEARCH / FILTER ============
+
+function filterDiscoveryTable(input) {
+  const filter = input.value.toLowerCase();
+  const table = input.closest('.chat-msg-body').querySelector('.discovery-table');
+  if (!table) return;
+  const rows = table.querySelectorAll('tbody tr');
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(filter) ? '' : 'none';
+  });
 }
 
 // ============ ASSESSMENT ============
@@ -140,11 +302,12 @@ function assessAll() {
 <p>&#10003; Selected 20 repositories for assessment.</p>
 <p>Starting assessment now...</p>`);
 
-  addAgentMsg(`<p><strong>AWS Transform</strong> <span class="show-thinking">Show thinking &#9662;</span></p>
+  addAgentMsg(`<p><strong>AWS Transform</strong> <span class="show-thinking" onclick="toggleThinkingPanel()">Show thinking &#9662;</span></p>
 <p>Assessment is underway for all repositories.</p>`);
 
+  showThinkingPanel('Analyzing repository structure and dependencies...');
+
   updateSidebarAssessing();
-  // Hide right panel during assessment (matches video)
   document.getElementById('rightPanel').style.display = 'none';
   scrollChat();
 
@@ -157,6 +320,10 @@ function assessNext(index) {
     return;
   }
   state.currentIndex = index;
+
+  // Update thinking panel with current repo
+  showThinkingPanel(`Assessing ${REPOS[index].name}... (${index + 1}/${REPOS.length})`);
+
   const duration = 300 + Math.random() * 500;
   setTimeout(() => completeAssessment(index), duration);
 }
@@ -170,7 +337,7 @@ function completeAssessment(index) {
 
   const assessed = Object.keys(state.assessments).length;
   if (assessed === 10) {
-    addAgentMsg(`<p><strong>AWS Transform</strong> <span class="show-thinking">Show thinking &#9662;</span></p>
+    addAgentMsg(`<p><strong>AWS Transform</strong> <span class="show-thinking" onclick="toggleThinkingPanel()">Show thinking &#9662;</span></p>
 <p>&#9989; Assessment progress: 50% (${assessed}/${REPOS.length} total). Elapsed: ${Math.floor(assessed * 1.2)}s</p>`);
   }
 
@@ -181,16 +348,17 @@ function completeAssessment(index) {
 function completeAllAssessments() {
   state.phase = 'assessed';
   state.currentIndex = -1;
+  stopThinking();
 
   const assessed = Object.keys(state.assessments).length;
   const high = Object.values(state.assessments).filter(a => a.complexity === 'High').length;
   const med = Object.values(state.assessments).filter(a => a.complexity === 'Medium').length;
   const low = Object.values(state.assessments).filter(a => a.complexity === 'Low').length;
 
-  addAgentMsg(`<p><strong>AWS Transform</strong> <span class="show-thinking">Show thinking &#9662;</span></p>
+  addAgentMsg(`<p><strong>AWS Transform</strong> <span class="show-thinking" onclick="toggleThinkingPanel()">Show thinking &#9662;</span></p>
 <p>&#9989; Assessment complete for ${assessed} repositories!</p>`);
 
-  // Summary table in chat (matches video)
+  // Summary table in chat
   let rows = '';
   REPOS.forEach((repo, i) => {
     const a = state.assessments[i];
@@ -210,21 +378,66 @@ function completeAllAssessments() {
   </table>
 </div>`);
 
-  addAgentMsg(`<p>&#128200; <strong>Portfolio Overview • Risk Level: LOW-MEDIUM</strong> — No critical or high-risk blockers. Repositories are small, low-complexity projects with limited external dependencies.</p>
-<p>&#9888; <strong>Non-upgradeable APIs</strong> (e.g. <code>p/v_build</code>) — 0.1% flagged as not upgradeable in the top-level project (test/UO). This is the largest technical debt item in the portfolio and requires code-level remediation before the solution can be considered fully cloud-ready.</p>
-<p>Before starting transformation, you can configure <strong>checkpoints</strong> on individual repos. When a checkpoint is enabled, the agent will pause <em>after</em> transforming that repo so you can review the results before it continues to the next one.</p>
-<p>Review and configure checkpoints in the right panel, then start transformation when ready.</p>`);
+  // Assessment reports available for download
+  addAgentMsg(`<p><strong>Assessment Reports</strong></p>
+<p>The following reports are available for download:</p>
+<div class="file-card">
+  <div class="file-card-icon">&#128202;</div>
+  <div class="file-card-info">
+    <div class="file-card-name">assessment_report.xlsx</div>
+    <div class="file-card-meta">Full assessment details • ${assessed} repositories • Excel format</div>
+  </div>
+  <button class="file-card-action">Download</button>
+</div>
+<div class="file-card">
+  <div class="file-card-icon">&#128202;</div>
+  <div class="file-card-info">
+    <div class="file-card-name">combined_assessment_report.xlsx</div>
+    <div class="file-card-meta">Combined cross-repo analysis • Dependencies & risk scores</div>
+  </div>
+  <button class="file-card-action">Download</button>
+</div>
+<div class="file-card">
+  <div class="file-card-icon">&#128203;</div>
+  <div class="file-card-info">
+    <div class="file-card-name">global_transformation_plan.json</div>
+    <div class="file-card-meta">Uber transformation plan • Phases, strategies & time estimates</div>
+  </div>
+  <button class="file-card-action">Download</button>
+</div>`);
 
-  addActionButtons([
-    { label: 'Review transform checkpoints', class: 'green', action: 'showGlobalPlan' },
-    { label: 'Transform all automatically', class: 'blue', action: 'transformAllAuto' },
-    { label: 'Re-assess', class: 'outline', action: 'reassess' }
-  ]);
+  addAgentMsg(`<p>&#128200; <strong>Portfolio Overview • Risk Level: LOW-MEDIUM</strong> — No critical or high-risk blockers. Repositories are small, low-complexity projects with limited external dependencies.</p>
+<p>&#9888; <strong>Non-upgradeable APIs</strong> (e.g. <code>p/v_build</code>) — 0.1% flagged as not upgradeable in the top-level project (test/UO). This is the largest technical debt item in the portfolio and requires code-level remediation before the solution can be considered fully cloud-ready.</p>`);
+
+  // In auto mode, skip checkpoint configuration and go straight to transform
+  if (state.mode === 'auto') {
+    addAgentMsg(`<p><strong>AWS Transform</strong></p>
+<p>&#9889; <strong>Autonomous mode</strong> — proceeding directly to transformation. Checkpoints will log status but not pause execution.</p>
+<p>You can switch to interactive mode at any time to regain checkpoint control.</p>`);
+    addActionButtons([
+      { label: 'Pause and switch to interactive', class: 'outline', action: 'switchToInteractive' }
+    ]);
+
+    const prepBadge = document.getElementById('prepareBadge');
+    prepBadge.style.display = 'inline-block';
+    prepBadge.className = 'step-badge completed';
+    prepBadge.textContent = 'Completed';
+
+    // Auto mode: automatically start transformation after a brief delay
+    setTimeout(() => startTransformation(true), 1500);
+  } else {
+    addAgentMsg(`<p>Before starting transformation, you can configure <strong>checkpoints</strong> on individual repos. When a checkpoint is enabled, the agent will pause <em>after</em> transforming that repo so you can review the results before it continues to the next one.</p>
+<p>Review and configure checkpoints in the right panel, then start transformation when ready.</p>`);
+    addActionButtons([
+      { label: 'Review transform checkpoints', class: 'green', action: 'showGlobalPlan' },
+      { label: 'Transform all automatically', class: 'blue', action: 'transformAllAuto' },
+      { label: 'Re-assess', class: 'outline', action: 'reassess' }
+    ]);
+  }
 
   document.getElementById('assessBadge').className = 'step-badge completed';
   document.getElementById('assessBadge').textContent = 'Completed';
 
-  // Show right panel with assessment summary (matches video)
   document.getElementById('rightPanel').style.display = 'flex';
   updateRightPanelAssessmentComplete();
   scrollChat();
@@ -261,8 +474,20 @@ function showGlobalPlan() {
   prepBadge.className = 'step-badge completed';
   prepBadge.textContent = 'Completed';
 
-  // Right panel shows Global Plan with checkpoint toggles
   updateRightPanelGlobalPlan();
+  scrollChat();
+}
+
+function switchToInteractive() {
+  state.mode = 'interactive';
+  addUserMsg('Switch to interactive mode');
+  addAgentMsg(`<p><strong>AWS Transform</strong></p>
+<p>&#10003; Switched to <strong>interactive mode</strong>. I'll pause at checkpoints for your review.</p>
+<p>Review and configure checkpoints in the right panel, then start transformation when ready.</p>`);
+  addActionButtons([
+    { label: 'Review transform checkpoints', class: 'green', action: 'showGlobalPlan' },
+    { label: 'Transform all automatically', class: 'blue', action: 'transformAllAuto' }
+  ]);
   scrollChat();
 }
 
@@ -271,11 +496,12 @@ function showGlobalPlan() {
 function transformAllAuto() {
   addUserMsg('Transform all automatically');
 
-  // Clear all checkpoints
+  // Disable all checkpoints for auto run
+  state.mode = 'auto';
   REPOS.forEach((_, i) => { state.checkpoints[i] = false; });
 
   addAgentMsg(`<p><strong>AWS Transform</strong></p>
-<p>&#10003; Skipping checkpoint configuration. All repositories will be transformed automatically without pausing.</p>`);
+<p>&#10003; Switching to autonomous execution. All repositories will be transformed without pausing at checkpoints. Errors will be logged but won't block other repos.</p>`);
 
   const prepBadge = document.getElementById('prepareBadge');
   prepBadge.style.display = 'inline-block';
@@ -283,15 +509,13 @@ function transformAllAuto() {
   prepBadge.textContent = 'Completed';
 
   scrollChat();
-  setTimeout(() => startTransformation(), 800);
+  setTimeout(() => startTransformation(true), 800);
 }
 
-function startTransformation() {
+function startTransformation(silent) {
   state.phase = 'transforming';
 
-  addUserMsg('Start transformation');
-
-  const repoList = REPOS.map(r => r.name.split('/')[1]).join(', ');
+  if (!silent) addUserMsg('Start transformation');
 
   addAgentMsg(`<p><strong>AWS Transform</strong></p>
 <p>Starting .NET transformation — rev8.0 (${REPOS.length} repo(s)):</p>
@@ -301,8 +525,10 @@ function startTransformation() {
 </ul>
 <p>I'll send progress updates as each solution completes.</p>`);
 
-  addAgentMsg(`<p><strong>AWS Transform</strong> <span class="show-thinking">Show thinking &#9662;</span></p>
+  addAgentMsg(`<p><strong>AWS Transform</strong> <span class="show-thinking" onclick="toggleThinkingPanel()">Show thinking &#9662;</span></p>
 <p>Transformation is underway for all repositories!</p>`);
+
+  showThinkingPanel('Transforming repositories...');
 
   const transformBadge = document.getElementById('transformBadge');
   transformBadge.style.display = 'inline-block';
@@ -321,6 +547,9 @@ function transformNext(index) {
   }
 
   state.currentIndex = index;
+  showThinkingPanel(`Transforming ${REPOS[index].name.split('/')[1]}... (${index + 1}/${REPOS.length})`);
+  // Show this repo as "in progress" in sidebar
+  updateSidebarTransformRepo(index);
   updateRightPanelTransforming(index);
   runTransformation(index);
 }
@@ -330,84 +559,70 @@ function runTransformation(index) {
   setTimeout(() => completeTransformation(index), duration);
 }
 
+function getTransformSummary(index, filesChanged, testsPass) {
+  const repoName = REPOS[index].name.split('/')[1];
+  const summaries = {
+    0: testsPass
+      ? `Upgraded ${repoName} from .NET Framework 4.8 to .NET 8.0. Migrated ${filesChanged} files including project files, replaced System.Web dependencies with ASP.NET Core equivalents, updated Entity Framework 6 calls to EF Core, and converted Web.config to appsettings.json. All 47 unit tests pass after migration.`
+      : `Attempted upgrade of ${repoName} from .NET Framework 4.8 to .NET 8.0. Migrated ${filesChanged} files but encountered build failures due to incompatible System.Web.Mvc references in 3 controllers and a custom HttpModule that has no direct .NET 8 equivalent. 12 of 47 unit tests are failing.`,
+    1: `Upgraded ${repoName} to .NET 8.0. Converted ${filesChanged} files across 3 solutions. Replaced WCF service references with gRPC clients, updated payment gateway SDK to v5.2 (compatible with .NET 8), and migrated configuration from app.config to appsettings.json.`,
+    2: `Migrated ${repoName} to .NET 8.0. Updated ${filesChanged} files including OAuth2 middleware, replaced OWIN pipeline with ASP.NET Core middleware, and updated JWT token validation to use Microsoft.Identity.Web. All identity flows validated.`,
+    3: `Upgraded ${repoName} to .NET 8.0. Transformed ${filesChanged} files across 4 solutions. Replaced Entity Framework 6 with EF Core, migrated stored procedure calls to use new DbContext patterns, and updated order processing workflows.`,
+    4: `Migrated ${repoName} to .NET 8.0. Updated ${filesChanged} files. Replaced SignalR legacy with ASP.NET Core SignalR, updated email service dependencies, and converted background workers to IHostedService.`,
+    5: `Upgraded ${repoName} to .NET 8.0. Transformed ${filesChanged} files across 5 solutions. Replaced Crystal Reports references with modern reporting library, migrated SSRS integrations, and updated data access layer.`,
+  };
+
+  if (summaries[index]) return summaries[index];
+
+  // Generic summary for other repos
+  const actions = [
+    'updated project files to SDK-style format',
+    'replaced deprecated NuGet packages with .NET 8 compatible versions',
+    'migrated configuration to appsettings.json',
+    'updated dependency injection to use built-in DI container'
+  ];
+  return `Upgraded ${repoName} to .NET 8.0. Modified ${filesChanged} files — ${actions.slice(0, 2 + (index % 2)).join(', ')}. ${testsPass ? 'All tests passing.' : 'Some tests require attention.'}`;
+}
+
 function completeTransformation(index) {
   const repo = REPOS[index];
-
-  // WebPortal (index 0) always fails with missing packages
-  if (index === 0) {
-    state.transformations[index] = { filesChanged: 0, testsPass: false, failed: true };
-
-    // Only pause and show detailed failure if checkpoint is set
-    if (state.checkpoints[index]) {
-      addAgentMsg(`<p><strong>AWS Transform</strong></p>
-<p>&#10060; <strong>${repo.name.split('/')[1]}</strong> — transformation failed</p>
-<div class="checkpoint-alert" style="background:#4c1d1d;border-color:#f87171;">
-  <div class="checkpoint-alert-title" style="color:#f87171;">&#10060; Build Failed — Missing Packages</div>
-  <div class="checkpoint-alert-body" style="color:#fca5a5;">
-    The transformation could not complete due to unresolved package dependencies:<br><br>
-    <code>error NU1101: Unable to find package Contoso.Auth.Core (>= 4.2.0)</code><br>
-    <code>error NU1101: Unable to find package Contoso.Logging.Abstractions (>= 2.1.3)</code><br>
-    <code>error NU1101: Unable to find package Contoso.ServiceBus.Client (>= 3.0.1)</code><br><br>
-    These internal packages are not available in the public NuGet feed and require manual resolution.
-  </div>
-</div>
-<p>This repository has dependencies on internal packages that cannot be automatically resolved during cloud transformation. For complex migrations like this, we recommend using the <strong>AWS Toolkit for Visual Studio</strong> IDE experience which provides:</p>
-<ul>
-  <li>Interactive package resolution with private feed configuration</li>
-  <li>Step-by-step migration wizard with manual override support</li>
-  <li>Real-time build validation as you resolve each dependency</li>
-</ul>`);
-
-      addActionButtons([
-        { label: 'Open in IDE experience', class: 'blue', action: 'openIDE' },
-        { label: 'Skip and continue', class: 'outline', action: 'continueAfterFail' }
-      ]);
-
-      state.paused = true;
-      state.pausedAt = index;
-
-      updateRightPanelTransforming(index);
-      scrollChat();
-      return;
-    }
-
-    // No checkpoint — log failure and continue
-    const transformed = Object.keys(state.transformations).length;
-    if (transformed % 5 === 0) {
-      addAgentMsg(`<p><strong>AWS Transform</strong> <span class="show-thinking">Show thinking &#9662;</span></p>
-<p>&#9889; Progress: ${transformed}/${REPOS.length}. <strong>${repo.name.split('/')[1]}</strong> — &#10060; Failed (missing packages).</p>`);
-    }
-
-    updateRightPanelTransforming(index + 1);
-    scrollChat();
-    setTimeout(() => transformNext(index + 1), 300);
-    return;
-  }
-
   const filesChanged = Math.floor(Math.random() * 80) + 5;
-  const testsPass = Math.random() > 0.15;
+  // WebPortal (index 0) always fails to demonstrate failure case
+  const testsPass = index === 0 ? false : Math.random() > 0.15;
 
   state.transformations[index] = { filesChanged, testsPass };
 
+  // Update sidebar with this repo's result
+  updateSidebarTransformRepo(index);
+
   const transformed = Object.keys(state.transformations).length;
 
-  // If checkpoint is enabled, pause after completion
-  if (state.checkpoints[index]) {
+  // If checkpoint is enabled (interactive mode), pause after completion
+  if (state.mode === 'interactive' && state.checkpoints[index]) {
+    const repoName = repo.name.split('/')[1];
+    const statusIcon = testsPass ? '&#9989;' : '&#10060;';
+    const statusText = testsPass ? 'transformation complete' : 'transformation failed';
+    const summary = getTransformSummary(index, filesChanged, testsPass);
+
     addAgentMsg(`<p><strong>AWS Transform</strong></p>
-<p>&#9989; <strong>${repo.name.split('/')[1]}</strong> — transformation complete</p>
-<ul>
-  <li>Files changed: <strong>${filesChanged}</strong></li>
-  <li>Tests: ${testsPass ? '<span style="color:#34d399">&#9989; All passing</span>' : '<span style="color:#fbbf24">&#9888; Needs review</span>'}</li>
-</ul>
-<p>Checkpoint reached. Review the results before continuing.</p>`);
+<p>${statusIcon} <strong>${repoName}</strong> — ${statusText}</p>
+<p>${summary}</p>
+${!testsPass ? `<div class="checkpoint-alert">
+  <div class="checkpoint-alert-title">&#10060; Transformation failed</div>
+  <div class="checkpoint-alert-body">The build or tests did not pass after transformation. You can retry the transformation or continue to the next repository.</div>
+</div>` : ''}`);
 
     state.paused = true;
     state.pausedAt = index;
 
-    addActionButtons([
-      { label: 'Continue to next repo', class: 'green', action: 'continueAfter' },
-      { label: 'View changes', class: 'blue', action: 'viewRepoChanges' }
-    ]);
+    const checkpointButtons = [
+      { label: 'Continue', class: 'green', action: 'continueAfter' }
+    ];
+    if (!testsPass) {
+      checkpointButtons.push({ label: 'Retry', class: 'blue', action: 'retryRepo' });
+    }
+    checkpointButtons.push({ label: 'Switch to autonomous', class: 'outline', action: 'switchToAuto' });
+    addActionButtons(checkpointButtons);
 
     updateRightPanelTransforming(index);
     scrollChat();
@@ -416,8 +631,8 @@ function completeTransformation(index) {
 
   // Progress messages
   if (transformed % 5 === 0) {
-    addAgentMsg(`<p><strong>AWS Transform</strong> <span class="show-thinking">Show thinking &#9662;</span></p>
-<p>&#9889; Progress: ${transformed}/${REPOS.length}. Last: <strong>${repo.name.split('/')[1]}</strong> — ${filesChanged} files, tests ${testsPass ? '&#9989;' : '&#9888;'}.</p>`);
+    addAgentMsg(`<p><strong>AWS Transform</strong> <span class="show-thinking" onclick="toggleThinkingPanel()">Show thinking &#9662;</span></p>
+<p>&#9889; Progress: ${transformed}/${REPOS.length}. Last: <strong>${repo.name.split('/')[1]}</strong> — ${filesChanged} files, tests ${testsPass ? '&#9989;' : '&#10060;'}.</p>`);
   }
 
   updateRightPanelTransforming(index + 1);
@@ -441,6 +656,7 @@ function continueAfterCheckpoint() {
 function completeAllTransformations() {
   state.phase = 'complete';
   state.currentIndex = -1;
+  stopThinking();
 
   const transformed = Object.keys(state.transformations).length;
   const passing = Object.values(state.transformations).filter(t => t.testsPass).length;
@@ -518,21 +734,42 @@ function handleAction(action) {
     case 'startTransform': startTransformation(); break;
     case 'transformAllAuto': transformAllAuto(); break;
     case 'continueAfter': continueAfterCheckpoint(); break;
-    case 'continueAfterFail': continueAfterCheckpoint(); break;
-    case 'openIDE':
-      addUserMsg('Open in IDE experience');
-      addAgentMsg(`<p><strong>AWS Transform</strong></p>
-<p>&#9889; Launching <strong>AWS Toolkit for Visual Studio</strong> for <strong>WebPortal</strong>...</p>
-<p>The IDE experience will open with:</p>
-<ul>
-  <li>Your project pre-loaded with the current transformation state</li>
-  <li>Package Manager configured to resolve internal feeds</li>
-  <li>Migration wizard ready at the dependency resolution step</li>
-</ul>
-<p>You can return here after completing the IDE migration. Continuing with remaining repositories...</p>`);
-      state.paused = false;
-      scrollChat();
-      setTimeout(() => transformNext(state.pausedAt + 1), 1000);
+    case 'confirmInteractive': confirmMode('interactive'); break;
+    case 'confirmAuto': confirmMode('auto'); break;
+    case 'switchToInteractive': switchToInteractive(); break;
+    case 'retryRepo':
+      if (state.paused) {
+        const repo = REPOS[state.pausedAt];
+        const repoName = repo.name.split('/')[1];
+        addUserMsg(`Retry ${repoName}`);
+        addAgentMsg(`<p><strong>AWS Transform</strong></p>
+<p>&#128260; Retrying transformation for <strong>${repoName}</strong>...</p>`);
+        showThinkingPanel(`Retrying ${repoName}...`);
+        setTimeout(() => {
+          const filesChanged = Math.floor(Math.random() * 80) + 5;
+          state.transformations[state.pausedAt] = { filesChanged, testsPass: true };
+          updateSidebarTransformRepo(state.pausedAt);
+          const summary = getTransformSummary(state.pausedAt, filesChanged, true);
+          addAgentMsg(`<p><strong>AWS Transform</strong></p>
+<p>&#9989; <strong>${repoName}</strong> — retry successful</p>
+<p>${summary}</p>`);
+          addActionButtons([
+            { label: 'Continue', class: 'green', action: 'continueAfter' }
+          ]);
+          stopThinking();
+          scrollChat();
+        }, 1500);
+      }
+      break;
+    case 'switchToAuto':
+      if (state.paused) {
+        state.mode = 'auto';
+        REPOS.forEach((_, i) => { state.checkpoints[i] = false; });
+        addUserMsg('Switch to autonomous mode');
+        addAgentMsg(`<p><strong>AWS Transform</strong></p>
+<p>&#10003; Switched to <strong>autonomous mode</strong>. Remaining repos will be transformed without pausing at checkpoints.</p>`);
+        continueAfterCheckpoint();
+      }
       break;
     case 'viewRepoChanges':
       if (state.paused && state.transformations[state.pausedAt]) {
@@ -547,7 +784,7 @@ function handleAction(action) {
   <li>Deprecated APIs replaced</li>
   <li>Dependency versions updated</li>
 </ul>
-<p>Click <strong>"Continue to next repo"</strong> when ready.</p>`);
+<p>Choose an action: Continue, Retry, or Switch to autonomous.</p>`);
       }
       break;
     default: break;
@@ -581,12 +818,18 @@ function handleChatText(text) {
   } else if (state.phase === 'discovered') {
     if (lower.includes('assess')) {
       assessAll();
+    } else if (lower.includes('auto')) {
+      confirmMode('auto');
+    } else if (lower.includes('interactive')) {
+      confirmMode('interactive');
     } else {
-      addAgentMsg(`<p><strong>AWS Transform</strong></p><p>Would you like to assess all repositories?</p>`);
+      addAgentMsg(`<p><strong>AWS Transform</strong></p><p>Would you like to assess all repositories? Choose a mode first or say <strong>"assess all"</strong>.</p>`);
     }
   } else if (state.phase === 'assessed') {
     if (lower.includes('transform')) {
       showGlobalPlan();
+    } else if (lower.includes('interactive')) {
+      switchToInteractive();
     } else {
       addAgentMsg(`<p><strong>AWS Transform</strong></p><p>Assessment is complete. Say <strong>"transform all"</strong> to proceed.</p>`);
     }
@@ -616,9 +859,133 @@ function toggleStep(header) {
   if (body) body.style.display = body.style.display === 'none' ? 'block' : 'none';
 }
 
+function handleStepClick(stepId) {
+  document.getElementById('rightPanel').style.display = 'flex';
+  switch(stepId) {
+    case 'stepDiscover':
+      if (state.phase === 'init') return;
+      updateRightPanelDiscovery();
+      break;
+    case 'stepAssess':
+      if (Object.keys(state.assessments).length > 0) {
+        updateRightPanelAssessmentComplete();
+      } else {
+        updateRightPanelAssessing();
+      }
+      break;
+    case 'stepPrepare':
+      if (state.phase === 'planning' || state.phase === 'transforming' || state.phase === 'complete') {
+        updateRightPanelGlobalPlan();
+      }
+      break;
+    case 'stepTransform':
+      if (state.phase === 'complete') {
+        updateRightPanelTransformComplete();
+      } else if (state.phase === 'transforming') {
+        updateRightPanelTransforming(state.currentIndex >= 0 ? state.currentIndex : 0);
+      }
+      break;
+    default:
+      break;
+  }
+}
+
+function handleRepoStepClick(index) {
+  document.getElementById('rightPanel').style.display = 'flex';
+  updateRightPanelRepoDetail(index);
+}
+
+function updateRightPanelRepoDetail(index) {
+  const repo = REPOS[index];
+  const repoName = repo.name.split('/')[1];
+  document.getElementById('rightPanelTitle').textContent = repoName;
+  const content = document.getElementById('rightPanelContent');
+
+  const t = state.transformations[index];
+  const a = state.assessments[index];
+
+  let html = '';
+
+  if (a) {
+    html += `
+    <div class="rp-section-block">
+      <h4>Assessment</h4>
+      <div class="rp-detail-row"><span class="rp-detail-lbl">Complexity</span><span class="rp-detail-val">${a.complexity}</span></div>
+      <div class="rp-detail-row"><span class="rp-detail-lbl">Dependencies</span><span class="rp-detail-val">${a.deps}</span></div>
+      <div class="rp-detail-row"><span class="rp-detail-lbl">Readiness</span><span class="rp-detail-val">${a.readiness}%</span></div>
+    </div>`;
+  }
+
+  if (t) {
+    html += `
+    <div class="rp-section-block">
+      <h4>Transformation</h4>
+      <div class="rp-detail-row"><span class="rp-detail-lbl">Status</span><span class="rp-detail-val" style="color:${t.testsPass ? '#34d399' : '#fbbf24'}">${t.testsPass ? 'Complete' : 'Needs review'}</span></div>
+      <div class="rp-detail-row"><span class="rp-detail-lbl">Files changed</span><span class="rp-detail-val">${t.filesChanged}</span></div>
+      <div class="rp-detail-row"><span class="rp-detail-lbl">Tests</span><span class="rp-detail-val">${t.testsPass ? 'All passing' : 'Some failing'}</span></div>
+    </div>
+    <div class="rp-section-block">
+      <h4>Changes</h4>
+      <p>Framework upgraded to .NET 8.0</p>
+      <p>Deprecated APIs replaced</p>
+      <p>NuGet packages updated</p>
+      <p>Configuration migrated</p>
+    </div>`;
+  } else if (state.phase === 'transforming' && state.currentIndex === index) {
+    html += `
+    <div class="rp-section-block">
+      <h4>Transformation</h4>
+      <div class="progress-indicator"><span class="spinner"></span> In progress...</div>
+    </div>`;
+  } else {
+    html += `
+    <div class="rp-section-block">
+      <h4>Transformation</h4>
+      <p class="rp-muted">Pending</p>
+    </div>`;
+  }
+
+  content.innerHTML = html;
+}
+
+function updateRightPanelAssessing() {
+  document.getElementById('rightPanelTitle').textContent = 'Assessment In Progress';
+  const content = document.getElementById('rightPanelContent');
+  const assessed = Object.keys(state.assessments).length;
+  content.innerHTML = `
+    <div class="rp-detail-section">
+      <div class="rp-detail-row"><span class="rp-detail-lbl">Status</span><span class="rp-detail-val">In progress</span></div>
+      <div class="rp-detail-row"><span class="rp-detail-lbl">Progress</span><span class="rp-detail-val">${assessed}/${REPOS.length}</span></div>
+    </div>
+    <div class="progress-indicator"><span class="spinner"></span> Assessing repositories...</div>`;
+}
+
 function updateSidebarAssessing() {
   const substeps = document.getElementById('assessSubsteps');
   substeps.innerHTML = `<div class="substep"><span class="substep-icon active">&#8230;</span><span>General assessment</span></div>`;
+}
+
+function updateSidebarTransformRepo(index) {
+  const substeps = document.getElementById('transformSubsteps');
+  if (!substeps) return;
+  const repo = REPOS[index];
+  const repoName = repo.name.split('/')[1];
+  const t = state.transformations[index];
+  const iconClass = t ? (t.testsPass ? 'done' : 'paused') : 'active';
+  const icon = t ? (t.testsPass ? '&#10003;' : '&#9888;') : '&#8230;';
+
+  // Check if this repo already has a substep
+  const existing = substeps.querySelector(`[data-repo-index="${index}"]`);
+  if (existing) {
+    existing.innerHTML = `<span class="substep-icon ${iconClass}">${icon}</span><span>${repoName}</span>`;
+  } else {
+    const div = document.createElement('div');
+    div.className = 'substep substep-clickable';
+    div.setAttribute('data-repo-index', index);
+    div.innerHTML = `<span class="substep-icon ${iconClass}">${icon}</span><span>${repoName}</span>`;
+    div.onclick = () => handleRepoStepClick(index);
+    substeps.appendChild(div);
+  }
 }
 
 // ============ Right Panel ============
@@ -638,7 +1005,6 @@ function updateRightPanelDiscovery() {
       <td><input type="checkbox" checked disabled></td>
       <td>${r.name.split('/')[1]}</td>
       <td>${r.lang}</td>
-      <td>${r.size}</td>
     </tr>`).join('');
 
   content.innerHTML = `
@@ -652,7 +1018,7 @@ function updateRightPanelDiscovery() {
       <span class="filter-chip">Java (3)</span>
     </div>
     <table class="rp-table">
-      <thead><tr><th>Select</th><th>Repository</th><th>Language</th><th>Size</th></tr></thead>
+      <thead><tr><th>Select</th><th>Repository</th><th>Language</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
     <button class="rp-confirm-btn" onclick="handleAction('assessAll')">Confirm selection</button>`;
@@ -743,20 +1109,14 @@ function updateRightPanelTransforming(currentIdx) {
   const transformed = Object.keys(state.transformations).length;
   const startTime = '6/10/2026, 1:35 PM';
 
-  // Build phases list with status for each repo
   let phasesHtml = REPOS.map((r, i) => {
     const name = r.name.split('/')[1];
     const hasCheckpoint = state.checkpoints[i];
     let status, dot;
     if (state.transformations[i]) {
       const t = state.transformations[i];
-      if (t.failed) {
-        status = 'Failed';
-        dot = 'red';
-      } else {
-        status = t.testsPass ? 'Complete' : 'Needs review';
-        dot = t.testsPass ? 'green' : 'yellow';
-      }
+      status = t.testsPass ? 'Complete' : 'Needs review';
+      dot = t.testsPass ? 'green' : 'yellow';
     } else if (i === currentIdx) {
       status = 'In progress';
       dot = 'blue';
@@ -773,6 +1133,7 @@ function updateRightPanelTransforming(currentIdx) {
       <div class="rp-detail-row"><span class="rp-detail-lbl">Status</span><span class="rp-detail-val">In progress</span></div>
       <div class="rp-detail-row"><span class="rp-detail-lbl">Started</span><span class="rp-detail-val">${startTime}</span></div>
       <div class="rp-detail-row"><span class="rp-detail-lbl">Progress</span><span class="rp-detail-val">${transformed}/${REPOS.length}</span></div>
+      <div class="rp-detail-row"><span class="rp-detail-lbl">Mode</span><span class="rp-detail-val">${state.mode === 'auto' ? 'Autonomous' : 'Interactive'}</span></div>
     </div>
     <div class="rp-section-block">
       <h4>Transformation attempts (1)</h4>
@@ -805,13 +1166,8 @@ function updateRightPanelTransformComplete() {
     let dot = 'gray';
     let status = 'Skipped';
     if (t) {
-      if (t.failed) {
-        dot = 'red';
-        status = 'Failed';
-      } else {
-        dot = t.testsPass ? 'green' : 'yellow';
-        status = t.testsPass ? 'Complete' : 'Needs review';
-      }
+      dot = t.testsPass ? 'green' : 'yellow';
+      status = t.testsPass ? 'Complete' : 'Needs review';
     }
     const checkpointIcon = hasCheckpoint ? ' <span class="checkpoint-indicator">&#9632;</span>' : '';
     return `<div class="rp-phase-item"><span class="rp-dot ${dot}"></span><span>${name}${checkpointIcon}</span><span class="rp-phase-status">${status}</span></div>`;
@@ -828,5 +1184,38 @@ function updateRightPanelTransformComplete() {
       <div class="rp-phases-list">${phasesHtml}</div>
     </div>`;
 }
+
+// ============ Right Panel Resize ============
+
+(function initResize() {
+  const handle = document.getElementById('rightPanelResizeHandle');
+  const panel = document.getElementById('rightPanel');
+  let startX, startWidth;
+
+  handle.addEventListener('mousedown', (e) => {
+    startX = e.clientX;
+    startWidth = panel.offsetWidth;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    function onMouseMove(e) {
+      const diff = startX - e.clientX;
+      const newWidth = Math.min(700, Math.max(240, startWidth + diff));
+      panel.style.width = newWidth + 'px';
+    }
+
+    function onMouseUp() {
+      handle.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    }
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  });
+})();
 
 init();
